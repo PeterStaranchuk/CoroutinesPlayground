@@ -1,17 +1,16 @@
 package com.peterstaranchuk.coroutinesplaygraung
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.*
-import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 
-class MainActivity : AppCompatActivity(), CoroutineScope{
+class MainActivity : AppCompatActivity(), CoroutineScope {
 
+    val job = Job()
     override val coroutineContext: CoroutineContext
-        get() = Dispatchers.IO
+        get() = Dispatchers.IO + job
 
     val handler = CoroutineExceptionHandler { _, exception ->
         println("Caught $exception")
@@ -22,29 +21,27 @@ class MainActivity : AppCompatActivity(), CoroutineScope{
         setContentView(R.layout.activity_main)
 
         launch {
-            try {
-                login()
-            } catch (e : Exception) {
-                e.printStackTrace()
+            launch {
+                try {
+                    throw Exception("MAIN Ecxeption")
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
-        }
 
-        val userInfo = async {
-            fetchUserInfo()
-        }
-
-        launch {
-            try {
-                userInfo.await()
-            } catch (e : Exception) {
-                e.printStackTrace()
+            val someValue = GlobalScope.async(Dispatchers.IO) {
+                throw Exception("IO Ecxeption")
             }
-        }
 
-        GlobalScope.launch(handler) {
             try {
-                login()
-                userInfo.await()
+                launch {
+                    try {
+                        throw Exception("ONE MORE EXCEPTION")
+                    } catch (e : Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                someValue.await()
             } catch (e : Exception) {
                 e.printStackTrace()
             }
@@ -57,10 +54,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope{
         throw IllegalStateException("User not exist")
     }
 
-    private suspend fun fetchUserInfo() : UserInfo {
+    private suspend fun fetchUserInfo(): UserInfo {
         throw IllegalStateException("User info cannot be fetched")
         return UserInfo("Peter", 28)
     }
 
-    data class UserInfo(val name : String, val age : Int)
+    data class UserInfo(val name: String, val age: Int)
 }
